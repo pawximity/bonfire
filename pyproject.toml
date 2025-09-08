@@ -1,0 +1,9 @@
+[project]
+name = "bonfire"
+version = "0.1.0"
+description = "A controlled fire for resetting your local Docker environment"
+authors = [{ name = "Pawximity", email = "chrisloverchio+gis@gmail.com" }]
+dependencies = []
+
+[project.scripts]
+bonfire = "bonfire.__main__:main"
