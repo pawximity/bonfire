@@ -1,5 +1,4 @@
-# Editable install with no version control (bonfire==0.1.0)
--e /home/chris/Git/bonfire
+-e git+https://github.com/pawximity/bonfire.git@688729426c48f37da663f0668be6125b0d3ff52e#egg=bonfire
 certifi==2025.8.3
 charset-normalizer==3.4.3
 docker==7.1.0
