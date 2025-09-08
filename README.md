@@ -12,7 +12,7 @@ You can burn everything or you can **smolder**, which performs a non-destructive
 - Burn all containers
 - Burn user-created networks (skips defaults: `bridge`, `host`, `none`)
 - Burn all volumes
-- Smolder mode for safe, non-destructive dry runs
+- Smoldering for safe, non-destructive dry runs
 - Simple
 
 ---
