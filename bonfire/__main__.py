@@ -31,7 +31,11 @@ def main():
     parser = arg_parser()
     args = parser.parse_args()
     try:
-        args.func(args)
+        resource_metrics = args.func(args)
+        print("\n[*] The bonfire is over!")
+        for resource, count in resource_metrics.items():
+            if count > 0:
+                print(f"[-] {count} {resource}s burned")
     except BonfireError as e:
         print("[!]", e)
         return 1

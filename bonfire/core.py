@@ -10,35 +10,37 @@ def process_args(args):
     """
     client = docker.from_env()
     smolder = args.smolder
+    resource_metrics = {"image": 0, "container": 0, "network": 0, "volume": 0}
     if args.all:
-        remove_all(client, dry_run=smolder)
-        return
+        remove_all(client, resource_metrics, dry_run=smolder)
+        return resource_metrics
     if args.all_images:
-        remove_images(client, all=True, dry_run=smolder)
+        remove_images(client, resource_metrics, all=True, dry_run=smolder)
     if args.images and not args.all_images:
-        remove_images(client, dry_run=smolder)
+        remove_images(client, resource_metrics, dry_run=smolder)
     if args.containers:
-        remove_containers(client, dry_run=smolder)
+        remove_containers(client, resource_metrics, dry_run=smolder)
     if args.networks:
-        remove_networks(client, dry_run=smolder)
+        remove_networks(client, resource_metrics, dry_run=smolder)
     if args.volumes:
-        remove_volumes(client, dry_run=smolder)
+        remove_volumes(client, resource_metrics, dry_run=smolder)
+    return resource_metrics
 
 
-def remove_all(client, dry_run=False):
+def remove_all(client, metrics, dry_run=False):
     """Removes all Docker resources.
 
     Burns images, containers, networks, and volumes from the
     local Docker environment. Skips defaults and respects
     smoldering if enabled.
     """
-    remove_images(client, all=True, dry_run=dry_run)
-    remove_containers(client, dry_run=dry_run)
-    remove_networks(client, dry_run=dry_run)
-    remove_volumes(client, dry_run=dry_run)
+    remove_images(client, metrics, all=True, dry_run=dry_run)
+    remove_containers(client, metrics, dry_run=dry_run)
+    remove_networks(client, metrics, dry_run=dry_run)
+    remove_volumes(client, metrics, dry_run=dry_run)
 
 
-def remove_images(client, all=False, dry_run=False):
+def remove_images(client, metrics, all=False, dry_run=False):
     """Removes Docker images.
 
     Burns dangling images by default, or all images if the
@@ -55,9 +57,10 @@ def remove_images(client, all=False, dry_run=False):
                 client.images.remove(image.id, force=True)
             except docker.errors.APIError:
                 raise DockerError(resource_type, image_short_id)
+        metrics[resource_type] += 1
 
 
-def remove_containers(client, dry_run=False):
+def remove_containers(client, metrics, dry_run=False):
     """Removes Docker containers.
 
     Stops and burns all running containers from the local
@@ -73,9 +76,10 @@ def remove_containers(client, dry_run=False):
                 container.remove(force=True)
             except docker.errors.APIError:
                 raise DockerError(resource_type, container_short_id)
+        metrics[resource_type] += 1
 
 
-def remove_networks(client, dry_run=False):
+def remove_networks(client, metrics, dry_run=False):
     """Removes Docker networks.
 
     Burns all user-created networks, skipping the default
@@ -92,9 +96,10 @@ def remove_networks(client, dry_run=False):
                 network.remove()
             except docker.errors.APIError:
                 raise DockerError(resource_type, network_short_id)
+        metrics[resource_type] += 1
 
 
-def remove_volumes(client, dry_run=False):
+def remove_volumes(client, metrics, dry_run=False):
     """Removes Docker volumes.
 
     Burns all volumes from the local Docker environment.
@@ -109,6 +114,7 @@ def remove_volumes(client, dry_run=False):
                 volume.remove(force=True)
             except docker.errors.APIError:
                 raise DockerError(resource_type, volume_id)
+        metrics[resource_type] += 1
 
 
 def burn_message(resource_type, resource_id, dry_run=False):
