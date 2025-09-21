@@ -184,3 +184,102 @@ def test_remove_containers_docker_error(monkeypatch):
     assert metrics["container"] == 0
     assert mock_container.stopped == True
     assert mock_container.removed == False
+
+
+def test_remove_networks_dry_run(monkeypatch):
+    network_id = "network_id"
+    metrics = {"network": 0}
+
+    mock_network = SimpleNamespace(
+        id=network_id,
+        short_id="short_id",
+        name="network_name",
+        removed=False,
+        remove=lambda: setattr(mock_network, "removed", True))
+
+    client = SimpleNamespace()
+    client.networks = SimpleNamespace(list=None)
+
+    monkeypatch.setattr(client.networks,
+                        "list",
+                        lambda filters=None: [mock_network])
+
+    core.remove_networks(client, metrics, dry_run=True)
+    assert metrics["network"] == 1
+    assert mock_network.removed == False
+
+
+def test_remove_networks_default_network(monkeypatch):
+    network_id = "network_id"
+    metrics = {"network": 0}
+
+    mock_network = SimpleNamespace(
+        id=network_id,
+        short_id="short_id",
+        name="bridge",
+        removed=False,
+        remove=lambda: setattr(mock_network, "removed", True))
+
+    client = SimpleNamespace()
+    client.networks = SimpleNamespace(list=None)
+
+    monkeypatch.setattr(client.networks,
+                        "list",
+                        lambda filters=None: [mock_network])
+
+    core.remove_networks(client, metrics, dry_run=False)
+    assert metrics["network"] == 0
+    assert mock_network.removed == False
+
+
+def test_remove_networks(monkeypatch):
+    network_id = "network_id"
+    metrics = {"network": 0}
+
+    mock_network = SimpleNamespace(
+        id=network_id,
+        short_id="short_id",
+        name="network_name",
+        removed=False,
+        remove=lambda: setattr(mock_network, "removed", True))
+
+    client = SimpleNamespace()
+    client.networks = SimpleNamespace(list=None)
+
+    monkeypatch.setattr(client.networks,
+                        "list",
+                        lambda filters=None: [mock_network])
+
+    core.remove_networks(client, metrics, dry_run=False)
+    assert metrics["network"] == 1
+    assert mock_network.removed == True
+
+
+def test_remove_networks_docker_error(monkeypatch):
+    from bonfire.error import DockerError
+    from docker.errors import APIError
+
+    network_id = "network_id"
+    metrics = {"network": 0}
+
+    def mock_remove(force=True):
+        raise APIError("remove network test")
+
+    mock_network = SimpleNamespace(id=network_id,
+                                   short_id="short_id",
+                                   name="network_name",
+                                   removed=False,
+                                   remove=mock_remove)
+
+    client = SimpleNamespace()
+    client.networks = SimpleNamespace(list=None)
+
+    monkeypatch.setattr(client.networks,
+                        "list",
+                        lambda filters=None: [mock_network])
+
+    with pytest.raises(DockerError) as e:
+        core.remove_networks(client, metrics, dry_run=False)
+
+    assert metrics["network"] == 0
+    assert mock_network.removed == False
