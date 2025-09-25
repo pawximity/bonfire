@@ -283,3 +283,76 @@ def test_remove_networks_docker_error(monkeypatch):
 
     assert metrics["network"] == 0
     assert mock_network.removed == False
+
+
+def test_remove_volumes_dry_run(monkeypatch):
+    volume_id = "volume_id"
+    metrics = {"volume": 0}
+
+    mock_volume = SimpleNamespace(
+        id=volume_id,
+        short_id="short_id",
+        removed=False,
+        remove=lambda: setattr(mock_volume, "removed", True))
+
+    client = SimpleNamespace()
+    client.volumes = SimpleNamespace(list=None)
+
+    monkeypatch.setattr(client.volumes,
+                        "list",
+                        lambda filters=None: [mock_volume])
+
+    core.remove_volumes(client, metrics, dry_run=True)
+    assert metrics["volume"] == 1
+    assert mock_volume.removed == False
+
+
+def test_remove_volumes(monkeypatch):
+    volume_id = "volume_id"
+    metrics = {"volume": 0}
+
+    mock_volume = SimpleNamespace(
+        id=volume_id,
+        short_id="short_id",
+        removed=False,
+        remove=lambda force: setattr(mock_volume, "removed", True))
+
+    client = SimpleNamespace()
+    client.volumes = SimpleNamespace(list=None)
+
+    monkeypatch.setattr(client.volumes,
+                        "list",
+                        lambda filters=None: [mock_volume])
+
+    core.remove_volumes(client, metrics, dry_run=False)
+    assert metrics["volume"] == 1
+    assert mock_volume.removed == True
+
+
+def test_remove_volumes_docker_error(monkeypatch):
+    from bonfire.error import DockerError
+    from docker.errors import APIError
+
+    volume_id = "volume_id"
+    metrics = {"volume": 0}
+
+    def mock_remove(force=True):
+        raise APIError("remove volume test")
+
+    mock_volume = SimpleNamespace(id=volume_id,
+                                  short_id="short_id",
+                                  removed=False,
+                                  remove=mock_remove)
+
+    client = SimpleNamespace()
+    client.volumes = SimpleNamespace(list=None)
+
+    monkeypatch.setattr(client.volumes,
+                        "list",
+                        lambda filters=None: [mock_volume])
+
+    with pytest.raises(DockerError) as e:
+        core.remove_volumes(client, metrics, dry_run=False)
+
+    assert metrics["volume"] == 0
+    assert mock_volume.removed == False
